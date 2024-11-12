@@ -1,0 +1,100 @@
+#include <bits/stdc++.h>
+#define INF 1000000007
+using namespace std;
+
+int capacity[2005][2005];
+int flowPassed[2005][2005];
+int path_flow[2005];
+int parent[2005];
+vector<int> adj[2005];
+
+int BFS(int source, int sink) {
+    
+    memset (parent, -1, sizeof(parent));
+    memset (path_flow, 0, sizeof(path_flow));
+    queue<int> q;
+    parent[source] = -2;
+    q.push(source);
+    path_flow[source] = INF;
+
+    while (!q.empty()) {
+        int cur = q.front();
+        q.pop();
+        for (int i=0;i<adj[cur].size();i++) {
+            int next = adj[cur][i];
+            if (parent[next] == -1) {
+                if (capacity[cur][next] > flowPassed[cur][next]) {
+                    // set the parent for backtracking
+                    parent[next] = cur;
+                    path_flow[next] = min(path_flow[cur], capacity[cur][next] - flowPassed[cur][next]);
+                    if (next == sink) return path_flow[cur];
+                    else q.push(next);
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+int maxflow(int source, int sink) {
+    int maxFlow = 0;
+    while (true) {
+        int flow = BFS(source, sink);
+        if (flow == 0) break;
+        int cur = sink;
+        maxFlow += flow;
+        // backtracking the path
+        while (cur != source) {
+            int par = parent[cur];
+            flowPassed[par][cur] += flow;
+            flowPassed[cur][par] -= flow;
+            cur = par;
+        }
+    }
+    return maxFlow;
+}
+
+int main () {
+    int N, M;
+    cout << "Number of workers: ";
+    cin >> N;
+    cout << "Number of projects: ";
+    cin >> M;
+    int source = 0, sink = N + M + 1;
+    memset (capacity, 0, sizeof(capacity));
+    for (int i=1;i<=N;i++) {
+        adj[0].push_back(i);
+        adj[i].push_back(0);
+        capacity[0][i] = 1;
+    }
+    for (int i=1;i<=M;i++) {
+        int maxAssigned;
+        cout << "Workers required for project " << i << ": ";
+        cin >> maxAssigned;
+        int projectId = N + i;
+        adj[projectId].push_back(sink);
+        adj[sink].push_back(projectId);
+        capacity[projectId][sink] = maxAssigned;
+    }
+    int preference;
+    cout << "Number of preferences: ";
+    cin >> preference;
+    cout << "Preference list:" << endl;
+    for (int i=1;i<=preference;i++) {
+        int x,y;
+        cin >> x >> y;
+        // convert project into projectId
+        y += N;
+        adj[x].push_back(y);
+        adj[y].push_back(x);
+        capacity[x][y]=1;
+    }
+    cout << "Maximum flow: " << maxflow(source, sink) << endl;
+    for (int i=1;i<=N;i++) {
+        for (int j=N + 1;j <= N + M;j++) {
+            if (flowPassed[i][j]) cout << "Worker " << i << " is assigned to project " << j-N << endl;
+        }
+    }
+    return 0;
+}
